@@ -46,32 +46,39 @@ yarn build
 Карточка товара. 
 
 ```
-export interface IProduct {
+interface IProduct {
   id: string;
   description: string;
   image: string;
   title: string;
   category: string;
-  price: number;
+  price: number | null;
 }
 ```
 
 Заказ.
 
 ```
-export interface IOrder {
+interface IOrder {
   payment: string;
   email: string;
   phone: string;
   address: string;
-  total: number;
-  items: string[] ;
+}
+```
+
+Данные заказа для отправки на сервер.
+
+```
+interface IOrderRequest extends IOrder {
+  items: string[];
+  total: number;
 }
 ```
 Успешный заказ.
 
 ```
-export interface IOrderResult {
+interface IOrderResult {
   id: string,
   total: number
 }
@@ -79,7 +86,7 @@ export interface IOrderResult {
 Модель данных товара.
 
 ```
-export interface IProductData {
+interface IProductData {
   setProductList(items: IProduct[]): void;
   getProductList(): IProduct[];
   getProductById(id: string): IProduct;
@@ -89,34 +96,36 @@ export interface IProductData {
 Модель данных заказа.
 
 ```
-export interface IOrderData {
-  productList: TBasketItem[];
-  order: IOrder;
-  addProduct(item: TBasketItem): void;
-  deleteProduct(idProduct: string): void;
-  getTotal(): number;
+interface IOrderData {
+  _basket: TBasketItem[];
+  _order: Omit<IOrder, 'items' | 'total'>;
+  addProduct(item: TBasketItem): void;
+  deleteProduct(idProduct: string): void;
+  getTotal(): number;
+  getBasket(): TBasketItem[];
+  setOrder(orderData: Omit<IOrder, 'items' | 'total'>): void;
 }
 ```
 
-Id карточки для просмтора подробной информации
+Id карточки для просмотра подробной информации
 ```
-export type TProductId = Pick<IProduct, 'id'>;
+type TProductId = Pick<IProduct, 'id'>;
 ```
-Карточеки в корзине.
+Карточки в корзине.
 ```
-export type TBasketItem = Pick<IProduct, 'id' | 'title' | 'price'>;
+type TBasketItem = Pick<IProduct, 'id' | 'title' | 'price'>;
 ```
 Данные в форме оплата.
 ```
-export type TOrderPayment  = Pick<IOrder, 'payment' | 'address'>
+type TOrderPayment  = Pick<IOrder, 'payment' | 'address'>
 ```
 Данные в форме котакты.
 ```
-export type TOrderContacts  = Pick<IOrder, 'email' | 'phone'>
+type TOrderContacts  = Pick<IOrder, 'email' | 'phone'>
 ```
 Ошибки в формах.
 ```
-export type FormErrors = Partial<Record<keyof IOrder, string>>;
+type FormErrors = Partial<Record<keyof IOrder, string>>;
 ```
 ## Архитектура приложения
 
@@ -160,8 +169,8 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 - `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.
 
 Так же класс предоставляет набор методов для взаимодействия с этими данными.
-- `setProductList(productData: IProduct): IProductList`  - устанавливает объект с карточками.  
-- `getProductList(): IProduct[]` - получает объект с карточками.
+- `setProductList(productData: IProduct): IProductList`  - устанавливает массив объектов с карточками.  
+- `getProductList(): IProduct[]` - получает массив объектов с карточками.
 - `getProductById(id: string): IProduct` - получает объект карточки товара по id.
 
 #### Класс OrderData
@@ -169,19 +178,19 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 Конструктор класса принимает инстант брокера событий\
 В полях класса хранятся следующие данные:
 - `_basket: TBasketItem[]` - товары в корзине
-- `_order: IOrder` - данные заказа
+- `_order: Omit<IOrder, 'items' | 'total'>;` - данные заказа
 - `formErrors` - ошибки при валидации
 - `events: IEvents` - экземпляр класса `EventEmitter` для инициации событий при изменении данных.
 
 Так же класс предоставляет набор методов для взаимодействия с этими данными.
-- `addProduct(product: TBasketItem)` - добавляет товар в корзину и заказ.
-- `deleteProduct(idProduct: string)` - удаляет товар из корзины и заказа.
+- `addProduct(product: TBasketItem): void` - добавляет товар в корзину и заказ.
+- `deleteProduct(idProduct: string): void` - удаляет товар из корзины и заказа.
 - `getTotal()` - получить стоимость заказа
 - `updateTotal()` - обновить стоимость заказа
 - `clearDataForms()` - очистить заказа из форм
 - `clearBasket()` - очистить корзину 
-- `setOrderField(field: keyof TFormOrder, value: string)` - получить поля и данные введенные данные формы заказа
-- `setContactsField(field: keyof TFormContacts, value: string)` - получить поля и данные введенные данные формы контактов
+- `setOrderField(field: keyof Pick<IOrder, 'payment' | 'address'>, value: string): void` - получить поля и данные введенные данные формы заказа
+- `setContact(field: keyof Pick<IOrder, 'email' | 'phone'>, value: string): void` - получить поля и данные введенные данные формы контактов
 - `validateContacts()` - проверка на валидность полей формы контактов
 - `validateOrder()` - проверка на валидность полей формы заказа
 
@@ -189,22 +198,16 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 Все классы представления отвечают за отображение внутри контейнера (DOM-элемент) передаваемых в них данных.
 
 #### Базовый Класс Component
-Класс является дженериком и родителем всех компонентов слоя представления. В дженерик принимает тип объекта, в котором данные будут передаваться в метод render для отображения данных в компоненте. В конструктор принимает элемент разметки, являющийся основным родительским контейнером компонента. Содержит метод render, отвечающий за сохранение полученных в параметре данных в полях компонентов через их сеттеры, возвращает обновленный контейнер компонента.\
-Методы:
-- `toggleClass` - удаление/добавления класса DOM-элементу
-- `setText` - установить текстовое содержимое
-- `setDisabled` - включение/отключение кнопки
-- `setHidden` - устанавливает DOM-элементу CSS-свойство display в значение 'none'
-- `setVisible` - удаляет CSS-свойство display у элемента
-- `setImage` - устанавливает элементу Image значения атрибута src и alt
-- `render` - отрисовка DOM-элементов 
+Класс является дженериком и родителем всех компонентов слоя представления. В дженерик принимает тип объекта, в котором данные будут передаваться в метод render для отображения данных в компоненте. В конструктор принимает элемент разметки, являющийся основным родительским контейнером компонента. Содержит метод render, отвечающий за сохранение полученных в параметре данных в полях компонентов через их сеттеры, возвращает обновленный контейнер компонента.
 
 #### Класс Modal
 Реализует модальное окно. Так же предоставляет методы `open` и `close` для управления отображением модального окна. Устанавливает слушатели на клик в оверлей и кнопку-крестик для закрытия попапа.  
 - `constructor(container: HTMLElement, events: IEvents)` Конструктор принимает `container`, в котором будет разметка содержимого модального окна и экземпляр класса `EventEmitter` для возможности инициации событий.
 
 Поля класса
-- `modal: HTMLElement` - элемент модального окна
+- `container: HTMLElement` - родительский контейнер, в который вставляется весь DOM модального окна.
+- `modal: HTMLElement` - корневой элемент самого модального окна, внутри которого располагается контент. Отличается от container тем, что может быть вложенным элементом и управляется методами `open` и `close`.
+- `content: HTMLElement` - элемент, предназначенный для динамического контента модального окна.
 - `events: IEvents` - брокер событий
 
 #### Класс ProductCard
@@ -216,7 +219,6 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 - `_title: HTMLElement`- элемент карточки заголовок
 - `_image: HTMLImageElement`- элемент карточки изображение
 - `_price: HTMLElement` - элемент карточки цена
-- `_description: HTMLElement` - элемент карточки описание
 - `openButton: HTMLButtonElement`- элемент карточки кнопка для открытия карточки
 
 #### Класс ProductCardPreview
@@ -241,21 +243,6 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 - `_list: HTMLElement` - список товаров 
 - `orderButton: HTMLButtonElement` - кнопка формления заказа
 - `_totalPrice: HTMLElement` - общая цена товаров в корзине
-
-#### Класс BasketItem
-Расширяет класс Component. Предназначен для реализации элемента списка в корзине. Отображает данные товара в корзине. 
-- `constructor(container: HTMLElement, events: IEvents)` -
-конструктор принимает `container`, в котором будет разметка содержимого модального окна и экземпляр класса `EventEmitter` для возможности инициации событий.
-
-Поля класса:
-- `itemId: string` - id товара
-- `_count: HTMLElement` - элемент карточки порядковый номер
-- `_title: HTMLElement` - элемент карточки название
-- `_price: HTMLElement` - элемент карточки цена
-- `deleteButton: HTMLButtonElement` - кнопка удаления из корзины
-
-Методы:
-- `setCounter(value: number)` - получает порядковый номер товара в корзине
 
 #### Класс Page
 Расширяет класс Component. Предназначен для реализации главной страницы с карточками товара и иконкой корзины.\
@@ -283,19 +270,37 @@ export type FormErrors = Partial<Record<keyof IOrder, string>>;
 Расширяет класс Form. Реализует форму заказа. Устанавливает значение полей. Сбрасывает содержимое полей, при закрытии модального окна.
 
 Поля класса:
-- `paymentButtons: NodeListOf<HTMLButtonElement>` - кнопки выбора способа оплаты
-- `selectedPayment: string` - переменная, хранящая выбранный метод оплаты
+- `paymentButtons: NodeListOf<HTMLButtonElement>` - кнопки выбора способа оплаты.
+- `selectedPayment: string` - переменная, хранящая выбранный метод оплаты.
 
 Методы:
-- `reset()` - сброс введенных данных формы
+- `reset()` - сброс введенных данных формы.
 
-#### Класс FormOrder
+#### Класс FormContacts
 
 Расширяет класс Form. Реализует форму контактов. Класс отвечает за установку данных полей и сброс (reset) формы при закрытии.
+
+Поля класса:
+- `emailField: HTMLInputElement` - поле ввода email.
+- `phoneField: HTMLInputElement` - поле ввода телефона.
+- `formErrors: Record<string, string>` - ошибки валидации полей формы.
+
+Методы:
+- `setFieldValue(field: keyof TFormContacts, value: string): void` - установка значения конкретного поля.
+- `reset(): void` - сброс всех полей формы и ошибок валидации.
+- `validate(): boolean` - проверка корректности полей формы.
 
 #### Класс FormSuccess
 
 Оповещение об успешном оформление заказа и вывод общей суммы заказа.
+
+Поля класса:
+- `messageContainer: HTMLElement` -контейнер для текста уведомления.
+- `totalContainer: HTMLElement` - элемент для отображения суммы заказа.
+
+Методы:
+- `show(total: number): void` - отображает уведомление с общей суммой заказа.
+- `hide(): void` - скрывает уведомление.
 
 ### Слой коммуникации
 
