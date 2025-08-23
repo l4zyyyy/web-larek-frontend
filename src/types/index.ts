@@ -1,4 +1,4 @@
-interface IProduct {
+export interface IProduct {
     id: string;
     title: string;
     category: string;
@@ -7,30 +7,30 @@ interface IProduct {
     price: number | null;
 }
 
-interface IOrder {
+export interface IOrder {
     payment: string;
     email: string;
     phone: string;
     address: string;
 }
 
-interface IOrderRequest extends IOrder {
+export interface IOrderRequest extends IOrder {
     items: string[];
     total: number;
 }
 
-interface IOrderResult {
+export interface IOrderResult {
     id: string;
     total: number;
 }
 
-interface IProductData {
+export interface IProductData {
     setProductList(items: IProduct[]): void;
     getProductList(): IProduct[];
     getProductById(id: string): IProduct;
 }
 
-interface IOrderData {
+export interface IOrderData {
     _basket: TBasketItem[];
     _order: Omit<IOrder, 'items' | 'total'>;
     addProduct(item: TBasketItem): void;
@@ -40,8 +40,8 @@ interface IOrderData {
     setOrder(orderData: Omit<IOrder, 'items' | 'total'>): void;
 }
 
-type TProductId = Pick<IProduct, 'id'>;
-type TBasketItem = Pick<IProduct, 'id' | 'title' | 'price'>;
-type TOrderPayment = Pick<IOrder, 'payment' | 'address'>;
-type TOrderContacts = Pick<IOrder, 'email' | 'phone'>;
-type FormErrors = Partial<Record<keyof IOrder, string>>;
+export type TProductId = Pick<IProduct, 'id'>;
+export type TBasketItem = Pick<IProduct, 'id' | 'title' | 'price'>;
+export type TOrderPayment = Pick<IOrder, 'payment' | 'address'>;
+export type TOrderContacts = Pick<IOrder, 'email' | 'phone'>;
+export type FormErrors = Partial<Record<keyof IOrder, string>>;
