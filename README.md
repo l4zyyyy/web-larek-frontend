@@ -243,6 +243,24 @@ type FormErrors = Partial<Record<keyof IOrder, string>>;
 - `orderButton: HTMLButtonElement` - кнопка формления заказа 
 - `_totalPrice: HTMLElement` - общая цена товаров в корзине 
  
+#### Класс BasketItem
+Предназначен для отображения одного товара внутри корзины.
+- `constructor(item: TBasketItem, index: number, events: IEvents)` -
+конструктор принимает объект товара (TBasketItem), порядковый номер этого товара в корзине и экземпляр EventEmitter для проброса событий.
+
+Поля класса:
+- `_item: TBasketItem` - данные о товаре
+- `_index: number` - порядковый номер товара в списке
+- `_events: IEvents` - объект событий
+- `_element: HTMLElement` - DOM-элемент карточки товара
+- `_title: HTMLElement` - заголовок карточки (название товара)
+- `_price: HTMLElement` - цена товара
+- `_deleteButton: HTMLButtonElement` - кнопка удаления товара
+- `_itemIndex: HTMLElement` - отображение порядкового номера
+
+Методы:
+- `render(): HTMLElement` - возвращает разметку карточки товара для вставки в корзину.
+
 #### Класс Page 
 Расширяет класс Component. Предназначен для реализации главной страницы с карточками товара и иконкой корзины.\ 
 - `constructor(container: HTMLElement, events: IEvents)` - 

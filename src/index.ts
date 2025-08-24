@@ -14,10 +14,12 @@ import { Basket } from './components/common/Basket';
 import { FormOrder } from './components/common/FormOrder';
 import { FormContacts } from './components/common/FormContacts';
 import { FormSuccess } from './components/common/FormSuccess';
+import { BasketItem } from './components/common/BasketItem';
 
 // Инициализация базовых компонентов
 const events = new EventEmitter();
 const api = new LarekApi(CDN_URL, API_URL);
+
 
 // Все шаблоны
 const cardCatalogTemplate = ensureElement<HTMLTemplateElement>('#card-catalog');
@@ -99,30 +101,16 @@ events.on('product:removeBasket', (product: IProduct) => {
 // Обновилась корзина (добавление/удаление) -> Пересчитать счетчик и сумму
 events.on('totalUpdated', () => {
     page.counter = orderData.getBasket().length;
+
+    basket.items = orderData.getBasket().map((item, index) => {
+        return new BasketItem(item, index + 1, events).render();
+    });
+
     basket.total = orderData.getTotal();
 });
 
-// Открыть корзину -> Показать модалку с товарами
+// Открыть корзину → просто показать модалку
 events.on('basket:open', () => {
-    const basketItems = orderData.getBasket().map((item, index) => {
-        const card = cloneTemplate(cardBasketTemplate);
-        const title = card.querySelector('.card__title');
-        const price = card.querySelector('.card__price');
-        const deleteButton = card.querySelector('.basket__item-delete');
-        const itemIndex = card.querySelector('.basket__item-index');
-        
-        itemIndex.textContent = (index + 1).toString();
-        title.textContent = item.title;
-        price.textContent = `${item.price} синапсов`;
-        deleteButton.addEventListener('click', () => {
-            events.emit('product:removeBasket', item);
-            events.emit('basket:open'); // Перерисовать корзину
-        });
-        return card;
-    });
-
-    basket.items = basketItems;
-    basket.total = orderData.getTotal();
     modal.render({ content: basket.render() });
 });
 
@@ -160,6 +148,10 @@ events.on('formErrorsContacts:change', (errors: Partial<IOrder>) => {
     formContacts.errors = Object.values({ email, phone }).filter(i => !!i).join('; ');
 });
 
+const success = new FormSuccess(cloneTemplate(successTemplate), {
+    onClick: () => modal.close(),
+});
+
 // Нажали "Оплатить" в форме контактов -> Отправить заказ на сервер
 events.on('contacts:submit', () => {
     const orderRequest = {
@@ -169,21 +161,19 @@ events.on('contacts:submit', () => {
     };
     
     api.orderProducts(orderRequest)
-        .then(result => {
-            const success = new FormSuccess(cloneTemplate(successTemplate), {
-                onClick: () => modal.close(),
-            });
-            success.show(result.total);
-            modal.render({ content: success.render() });
+    .then(result => {
+        success.show(result.total);
+        modal.render({ content: success.render() });
 
-            orderData.clearBasket();
-            orderData.clearDataForms();
-            formOrder.reset();
-            formContacts.reset();
-        })
-        .catch(err => {
-            console.error(err);
-        });
+        orderData.clearBasket();
+        orderData.clearDataForms();
+        formOrder.reset();
+        formContacts.reset();
+    })
+    .catch(err => {
+        console.error(err);
+    });
+
 });
 
 // Блокировка/разблокировка страницы при открытии/закрытии модалки
